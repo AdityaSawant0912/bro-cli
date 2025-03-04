@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS cmd (
+    alias TEXT PRIMARY KEY,
+    cmd TEXT NOT NULL
+);
