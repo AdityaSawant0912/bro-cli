@@ -1,2 +1,2 @@
 @echo off
-python C:\Personal\bro-cli\bro.py %*
+python P:\bro-cli\bro.py %*
