@@ -7,7 +7,7 @@ default_schemas = {
 }
 
 # DB
-PATH_TO_DB = 'C:\\Personal\\bro-cli\\'
+PATH_TO_DB = 'P:\\bro-cli\\'
 DEFAULT_DB = 'main'
 
 
