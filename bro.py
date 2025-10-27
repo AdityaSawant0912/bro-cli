@@ -22,9 +22,9 @@ def hello():
 
 
 @app.command('run', help='Bro executes your custom commands.')
-def bro(alias: str, args: str = typer.Argument(default='', help="Additional arguments to append to the stored command")):
+def run(alias: str, args: str = typer.Argument(default='', help="Additional arguments to append to the stored command")):
     checkDB(DEFAULT_DB)
-    result = find(DEFAULT_DB, CMD, f"alias = '{alias}'")
+    result = find(DEFAULT_DB, TABLE_CMD, f"alias = '{alias}'")
 
     if not result:
         typer.echo(f"Command '{alias}' not found.")
@@ -44,6 +44,28 @@ def bro(alias: str, args: str = typer.Argument(default='', help="Additional argu
     except subprocess.CalledProcessError as e:
         typer.echo(f"Error executing command: {e}")
 
+@app.command('py', help='Bro executes your custom commands.')
+def bro(alias: str, args: str = typer.Argument(default='', help="Additional arguments to append to the stored command")):
+    checkDB(DEFAULT_DB)
+    result = find(DEFAULT_DB, TABLE_PYTHON, f"alias = '{alias}'")
+
+    if not result:
+        typer.echo(f"Command '{alias}' not found.")
+        raise typer.Exit()
+
+    _, path = result[0]
+
+    # Escape additional arguments to handle special characters
+    escaped_args = args.strip()
+    full_command = f"python {path} {escaped_args}"
+
+    # Log the command being executed
+    typer.echo(f"Executing script: {full_command}")
+    
+    try:
+        subprocess.run(full_command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Error executing command: {e}")
 app.add_typer(add.app, name="add", help="Add stuff")
 app.add_typer(remove.app, name="delete", help="Delete stuff")
 
