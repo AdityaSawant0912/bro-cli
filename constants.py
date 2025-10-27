@@ -12,4 +12,10 @@ DEFAULT_DB = 'main'
 
 
 # Tables
-CMD = 'cmd' 
+TABLES:list[str] = []
+
+TABLE_CMD = 'cmd' 
+TABLE_PYTHON = 'python' 
+
+TABLES.append(TABLE_CMD)
+TABLES.append(TABLE_PYTHON)

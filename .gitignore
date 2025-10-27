@@ -1,3 +1,4 @@
 bro.bat
 .git/*
 __pycache__
+.vscode

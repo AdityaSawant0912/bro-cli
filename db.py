@@ -17,8 +17,7 @@ def checkDB(db_key: str) -> bool:
 
     if not os.path.isfile(os.path.join(PATH_TO_DB, db_name)):
         print(f"Database '{db_name}' not found. Initializing...")
-        init(db_key, default_schemas[db_key])
-
+    init(db_key, default_schemas[db_key])        
     return True
 
 
@@ -33,9 +32,8 @@ def init(db_key: str, schema_file: str) -> None:
     # Check if the database is empty
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cur.fetchall()
-
     path_to_schema = os.path.join(PATH_TO_DB, schema_file)
-    if not tables:  # If no tables exist, initialize the database
+    if len(tables) is not len(TABLES):  # If no tables exist, initialize the database
         if not os.path.isfile(path_to_schema):
             raise FileNotFoundError(f"Schema file not found: {path_to_schema}")
 
@@ -65,7 +63,7 @@ def find(db: str, table: str, where: str, select:str ='*') -> list:
     finally:
         con.close()
 
-def insert(db: str, table: str, **kw: list) -> bool:
+def insert(db: str, table: str, **kw: str|list) -> bool:
     if not checkDB(db):
         raise ValueError(f"Invalid database name: {db}")
 
@@ -90,7 +88,7 @@ def insert(db: str, table: str, **kw: list) -> bool:
     finally:
         con.close()
 
-def update(db: str, table: str, where: str, **kw: list) -> bool:
+def update(db: str, table: str, where: str, **kw: str|list) -> bool:
     if not checkDB(db):
         raise ValueError(f"Invalid database name: {db}")
 
