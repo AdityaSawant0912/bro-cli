@@ -1,2 +1,3 @@
 bro.bat
 .git/*
+__pycache__
