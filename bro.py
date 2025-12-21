@@ -69,5 +69,21 @@ def bro(alias: str, args: str = typer.Argument(default='', help="Additional argu
 app.add_typer(add.app, name="add", help="Add stuff")
 app.add_typer(remove.app, name="delete", help="Delete stuff")
 
+@app.command('bye', help="Bro says bye and shuts down the computer.")
+def bye():
+    if not typer.confirm("Are you really leaving me?"):
+        typer.echo("Good. Stay.")
+        raise typer.Exit()
+
+    typer.echo("Aww, Okay bye...")
+
+    cmd = "shutdown /s /t 0"
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Error executing shutdown command: {e}")
+    except Exception as e:
+        typer.echo(f"Shutdown failed: {e}")
+
 if __name__ == "__main__":
     app()
