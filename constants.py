@@ -1,3 +1,4 @@
+import os
 from typing import Callable, TypedDict
 from collections import defaultdict
 
@@ -22,7 +23,8 @@ default_schemas = {
 }
 
 # DB
-PATH_TO_DB = 'R:\\bro-cli\\'
+PATH_TO_DB = os.getenv('BRO_CLI_PATH') or ""
+assert PATH_TO_DB != "", "Missing environment variable 'BRO_CLI_PATH'. \nPlease set it to the path of bro-cli."
 DEFAULT_DB = 'main'
 
 

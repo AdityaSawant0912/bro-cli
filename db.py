@@ -3,7 +3,6 @@ import os
 from typing import Optional, List, Tuple, Any
 from constants import PATH_TO_DB, TABLES, default_dbs, default_schemas
 
-
 class Database:
     _instances: dict[str, 'Database'] = {}  # Store instances per database
     
