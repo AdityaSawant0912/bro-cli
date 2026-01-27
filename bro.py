@@ -57,7 +57,7 @@ def main(
         bro -i backup                   # Show info
         bro -s docker                   # Search aliases
     """
-    if ctx.invoked_subcommand is not None:
+    if ctx.invoked_subcommand != None:
         return
     
     # List all aliases
@@ -178,7 +178,7 @@ def _update_alias(alias: str, **kwargs):
     value = None
     
     for flag, flag_value in kwargs.items():
-        if flag_value is not None:
+        if flag_value:
             table = TABLE_ALIAS.get(flag)
             value = flag_value
             break
@@ -339,11 +339,11 @@ def _execute_alias(alias: str, extra_args: Optional[str]):
     raise typer.Exit(code=1)
 
 
-# @app.command()
-# def hello():
-#     """Bro says hello"""
-#     typer.echo("Hello Bro!")
-#     typer.echo("Type 'bro --help' to begin")
+@app.command()
+def hello():
+    """Bro says hello"""
+    typer.echo("Hello Bro!")
+    typer.echo("Type 'bro --help' to begin")
 
 
 # @app.command()
