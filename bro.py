@@ -30,11 +30,11 @@ def execute_command(command: str, description: str = "command"):
         raise typer.Exit(code=1)
 
 
-@app.callback(invoke_without_command=True)
+@app.command(context_settings={"allow_extra_args": True, "allow_interspersed_args": False})
 def main(
     ctx: typer.Context,
     alias: Optional[str] = typer.Argument(None, help="Alias name"),
-    cmd: Optional[str] = typer.Argument(None, help="Command to execute"),
+    # cmd: Optional[str] = typer.Argument(None, help="Command to execute"),
     
     # CRUD flags (boolean)
     chain: bool = typer.Option(False, "-c", "--chain", help="Chain alias to execute"),
@@ -55,28 +55,29 @@ def main(
     js: Optional[str] = typer.Option(None, "-js", "--javascript", help="JavaScript script path"),
     
     # Additional args for execution
-    args: Optional[str] = typer.Option(None, help="Additional arguments for command execution"),
+    args: Optional[str] = typer.Option(None, "--args",  help="Additional arguments for command execution"),
 ):
     """
     bro - Your personal CLI assistant
     
-    Examples:
-        bro backup                      # Execute 'backup' alias
-        bro --init                      # Initialize .bro config file
-        bro -a deploy "npm run deploy"  # Add command (global)
-        bro -a run "python main.py" --local  # Add to project .bro
-        bro -a script -py ./script.py   # Add Python script
-        bro -c script,deploy            # Chain alias
-        bro -u deploy "yarn deploy"     # Update command
-        bro -d deploy                   # Delete alias
-        bro -d run --local              # Delete from project .bro
-        bro -l                          # List all (global + project)
-        bro -i backup                   # Show info
-        bro -s docker                   # Search aliases
+    Examples:\n
+        bro backup                           # Execute 'backup' alias\n
+        bro --init                           # Initialize .bro config file\n
+        bro -a deploy "npm run deploy"       # Add command (global)\n
+        bro -a run "python main.py" --local  # Add to project .bro\n
+        bro -a script -py ./script.py        # Add Python script\n
+        bro -c script,deploy                 # Chain alias\n
+        bro -u deploy "yarn deploy"          # Update command\n
+        bro -d deploy                        # Delete alias\n
+        bro -d run --local                   # Delete from project .bro\n
+        bro -l                               # List all (global + project)\n
+        bro -i backup                        # Show info\n
+        bro -s docker                        # Search aliases\n
     """
     if ctx.invoked_subcommand != None:
         return
-    
+    extra = ctx.args  # e.g. ["asdasd", "another"]
+    extra_str = " ".join(extra)
     # Initialize .bro file
     if init:
         _init_config(force)
@@ -100,11 +101,12 @@ def main(
     
     # Chain aliases
     if chain:
-        _chain_aliases(alias, args)
+        _chain_aliases(alias, extra_str)
         return
     
     # Add new alias
     if add:
+        cmd = ctx.args[0] if ctx.args else None
         if not cmd and not py and not js:
             typer.echo("Error: Please provide a command or script path", err=True)
             raise typer.Exit(code=1)
@@ -118,6 +120,7 @@ def main(
     
     # Update alias
     if update:
+        cmd = ctx.args[0] if ctx.args else None
         if not cmd and not py and not js:
             typer.echo("Error: Please provide a command or script path to update", err=True)
             raise typer.Exit(code=1)
@@ -130,7 +133,7 @@ def main(
         return
     
     # Default: Execute the alias
-    _execute_alias(alias, args)
+    _execute_alias(alias, extra_str)
 
 def _add_alias(alias: str, local: bool = False, **script_flags):
     """Add a new alias"""
@@ -503,14 +506,6 @@ def _init_config(force: bool = False):
     else:
         typer.echo("Failed to create .bro file", err=True)
         raise typer.Exit(code=1)
-
-
-@app.command()
-def hello():
-    """Bro says hello"""
-    typer.echo("Hello Bro!")
-    typer.echo("Type 'bro --help' to begin")
-
 
 # @app.command()
 # def bye():

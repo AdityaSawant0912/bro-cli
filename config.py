@@ -7,8 +7,8 @@ from typing import Optional, Dict
 from pathlib import Path
 
 try:
-    import tomli
-    import tomli_w
+    import tomli # type: ignore
+    import tomli_w  # type: ignore
     TOML_AVAILABLE = True
 except ImportError:
     TOML_AVAILABLE = False
