@@ -2,12 +2,14 @@
 import subprocess
 import sys
 import os
+import re
 import typer
 from typing import Optional
 from db import Database
 from constants import DEFAULT_DB, TABLE_CMD, TABLES, TABLE_INFO, TABLE_ALIAS
 from config import (
     load_project_config,
+    
     init_project_config,
     add_to_project_config,
     delete_from_project_config,
@@ -19,9 +21,27 @@ from config import (
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 db = Database(DEFAULT_DB)
 
+# Commands that modify shell state — must run in parent shell, not subprocess
+_SHELL_CONTEXT_PATTERNS = [
+    r'^cd\b',
+    r'^chdir\b',
+    r'^pushd\b',
+    r'^popd\b',
+    r'^set\b',
+    r'\bactivate\b',
+]
 
-def execute_command(command: str, description: str = "command"):
-    """Execute a shell command with error handling"""
+def needs_shell_context(command: str) -> bool:
+    return any(re.search(p, command.strip(), re.IGNORECASE) for p in _SHELL_CONTEXT_PATTERNS)
+
+
+def execute_command(command: str, description: str = "command", exec_file: Optional[str] = None):
+    """Execute a shell command, routing shell-state-modifying commands through exec_file."""
+    if exec_file and needs_shell_context(command):
+        with open(exec_file, 'a') as f:
+            f.write(command + '\n')
+        typer.echo(f"Queued (shell) {description}: {command}")
+        return
     typer.echo(f"Executing {description}: {command}")
     try:
         subprocess.run(command, shell=True, check=True)
@@ -56,6 +76,9 @@ def main(
     
     # Additional args for execution
     args: Optional[str] = typer.Option(None, "--args",  help="Additional arguments for command execution"),
+
+    # Internal: path to temp .bat file written by bro.bat for shell-context commands
+    exec_file: Optional[str] = typer.Option(None, "--exec-file", hidden=True),
 ):
     """
     bro - Your personal CLI assistant
@@ -101,7 +124,7 @@ def main(
     
     # Chain aliases
     if chain:
-        _chain_aliases(alias, extra_str)
+        _chain_aliases(alias, extra_str, exec_file=exec_file)
         return
     
     # Add new alias
@@ -133,7 +156,7 @@ def main(
         return
     
     # Default: Execute the alias
-    _execute_alias(alias, extra_str)
+    _execute_alias(alias, extra_str, exec_file=exec_file)
 
 def _add_alias(alias: str, local: bool = False, **script_flags):
     """Add a new alias"""
@@ -400,32 +423,32 @@ def _show_info(alias: str):
     raise typer.Exit(code=1)
 
 
-def _chain_aliases(aliases: str, extra_args: Optional[str]):
+def _chain_aliases(aliases: str, extra_args: Optional[str], exec_file: Optional[str] = None):
     """Execute sequence of aliases (commands or scripts)"""
     _aliases = aliases.split(",")
     commands: list[tuple[str, str]] = []
-    
+
     # Load project config once
     project_config = load_project_config()
-    
+
     for alias in _aliases:
         # Check project config first
         if project_config and alias in project_config:
             command = project_config[alias]
             commands.append((command, f"project alias '{alias}'"))
             continue
-        
+
         # Check global database
         got_result = False
         for table in TABLES:
             if table not in TABLE_INFO:
                 continue
-            
+
             result = db.find_one(table, f"alias = '{alias}'")
             if result:
                 info = TABLE_INFO[table]
                 value = result[info['value_key']]
-                
+
                 # Build command using executor
                 command = info['executor'](value)
 
@@ -437,48 +460,52 @@ def _chain_aliases(aliases: str, extra_args: Optional[str]):
             typer.echo(f"Alias '{alias}' not found", err=True)
             typer.echo("Tip: Use 'bro -l' to list all aliases")
             raise typer.Exit(code=1)
-    
-    for cmd in commands:
-        execute_command(cmd[0], cmd[1])
+
+    # If any command needs shell context, write ALL to exec_file to preserve order
+    if exec_file and any(needs_shell_context(cmd) for cmd, _ in commands):
+        with open(exec_file, 'a') as f:
+            for cmd, _ in commands:
+                f.write(cmd + '\n')
+        for _, desc in commands:
+            typer.echo(f"Queued (shell) {desc}")
+    else:
+        for cmd, desc in commands:
+            execute_command(cmd, desc, exec_file=exec_file)
 
 
-def _execute_alias(alias: str, extra_args: Optional[str]):
+def _execute_alias(alias: str, extra_args: Optional[str], exec_file: Optional[str] = None):
     """Execute an alias (checks project first, then global)"""
-    
+
     # Check project config first
     project_config = load_project_config()
     if project_config and alias in project_config:
         command = project_config[alias]
-        
-        # Append extra args if provided
+
         if extra_args:
             command = f"{command} {extra_args.strip()}"
-        
-        execute_command(command, f"project alias '{alias}'")
+
+        execute_command(command, f"project alias '{alias}'", exec_file=exec_file)
         return
-    
+
     # Check global database
     for table in TABLES:
         if table not in TABLE_INFO:
             continue
-        
+
         result = db.find_one(table, f"alias = '{alias}'")
-        
+
         if result:
             info = TABLE_INFO[table]
             value = result[info['value_key']]
-            
-            # Build command using executor
+
             command = info['executor'](value)
-            
-            # Append extra args if provided
+
             if extra_args:
                 command = f"{command} {extra_args.strip()}"
-            
-            # Execute
-            execute_command(command, f"{info['type'].lower()} '{alias}'")
+
+            execute_command(command, f"{info['type'].lower()} '{alias}'", exec_file=exec_file)
             return
-    
+
     # Not found in any table
     typer.echo(f"Alias '{alias}' not found", err=True)
     typer.echo("Tip: Use 'bro -l' to list all aliases")
