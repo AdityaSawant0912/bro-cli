@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Install bro for bash/zsh on WSL (or any Linux/macOS).
-# Run once from the repo root:  bash install.sh
+# Install or update bro for bash/zsh/fish on WSL (or any Linux/macOS).
+# Run from the repo root:  bash install.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
