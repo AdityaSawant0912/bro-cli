@@ -30,9 +30,14 @@ impl Shell for Ps {
             r#"# bro wrapper — add to $PROFILE:
 # Invoke-Expression (& bro init powershell | Out-String)
 function bro {{
-  $code = & '{bin}' --emit --shell-name powershell run @args
-  if ($LASTEXITCODE -ne 0) {{ return }}
-  Invoke-Expression ($code -join "`n")
+  $mgmt = 'add','update','set','remove','rm','list','ls','info','search','find','init','run','help'
+  if ($args.Count -eq 0 -or $args[0] -in $mgmt -or $args[0] -like '-*') {{
+    & '{bin}' @args
+  }} else {{
+    $code = & '{bin}' --emit --shell-name powershell run @args
+    if ($LASTEXITCODE -ne 0) {{ return }}
+    Invoke-Expression ($code -join "`n")
+  }}
 }}
 "#,
             bin = bin_str,

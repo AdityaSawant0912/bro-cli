@@ -40,9 +40,14 @@ impl Shell for Posix {
                 r#"# bro wrapper — add to ~/.config/fish/config.fish:
 # bro init fish | source
 function bro
-    set code ('{bin}' --emit --shell-name fish run $argv)
-    or return $status
-    eval $code
+    set mgmt add update set remove rm list ls info search find init run help
+    if test (count $argv) -eq 0; or contains -- $argv[1] $mgmt; or string match -q -- '-*' $argv[1]
+        '{bin}' $argv
+    else
+        set code ('{bin}' --emit --shell-name fish run $argv)
+        or return $status
+        eval $code
+    end
 end
 "#,
                 bin = bin_str
@@ -53,9 +58,14 @@ end
             r#"# bro wrapper — add to ~/.bashrc or ~/.zshrc:
 # eval "$(bro init {shell})"
 bro() {{
-  local out
-  out="$('{bin}' --emit --shell-name {shell} run "$@")" || return $?
-  eval "$out"
+  local mgmt="add update set remove rm list ls info search find init run help"
+  if [[ $# -eq 0 ]] || echo "$mgmt" | grep -qw "${1:-}" || [[ "${1:-}" == -* ]]; then
+    '{bin}' "$@"
+  else
+    local out
+    out="$('{bin}' --emit --shell-name {shell} run "$@")" || return $?
+    eval "$out"
+  fi
 }}
 "#,
             shell = shell_name,
