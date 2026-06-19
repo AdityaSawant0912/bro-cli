@@ -1,0 +1,98 @@
+use std::path::Path;
+
+use anyhow::Result;
+
+use super::{InjectionMode, Shell, ShellKind};
+
+pub struct Posix {
+    pub kind: ShellKind,
+}
+
+impl Shell for Posix {
+    fn kind(&self) -> ShellKind {
+        self.kind
+    }
+
+    fn injection_mode(&self) -> InjectionMode {
+        InjectionMode::EvalStdout
+    }
+
+    fn quote(&self, arg: &str) -> String {
+        shlex::try_quote(arg)
+            .map(|s| s.into_owned())
+            .unwrap_or_else(|_| format!("'{}'", arg.replace('\'', "'\\''")))
+    }
+
+    fn sequence(&self, cmds: &[String]) -> String {
+        cmds.join("\n")
+    }
+
+    fn init_script(&self, bin: &Path) -> Result<String> {
+        let bin_str = bin.display();
+        let shell_name = match self.kind {
+            ShellKind::Fish => "fish",
+            ShellKind::Zsh  => "zsh",
+            _               => "bash",
+        };
+
+        if self.kind == ShellKind::Fish {
+            return Ok(format!(
+                r#"# bro wrapper — add to ~/.config/fish/config.fish:
+# bro init fish | source
+function bro
+    set code ('{bin}' --emit --shell-name fish run $argv)
+    or return $status
+    eval $code
+end
+"#,
+                bin = bin_str
+            ));
+        }
+
+        Ok(format!(
+            r#"# bro wrapper — add to ~/.bashrc or ~/.zshrc:
+# eval "$(bro init {shell})"
+bro() {{
+  local out
+  out="$('{bin}' --emit --shell-name {shell} run "$@")" || return $?
+  eval "$out"
+}}
+"#,
+            shell = shell_name,
+            bin   = bin_str,
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quote_plain() {
+        let sh = Posix { kind: ShellKind::Bash };
+        assert_eq!(sh.quote("hello"), "hello");
+    }
+
+    #[test]
+    fn quote_with_spaces() {
+        let sh = Posix { kind: ShellKind::Bash };
+        assert_eq!(sh.quote("hello world"), "'hello world'");
+    }
+
+    #[test]
+    fn sequence_joins_with_newline() {
+        let sh = Posix { kind: ShellKind::Bash };
+        let cmds = vec!["cd foo".to_string(), "ls".to_string()];
+        assert_eq!(sh.sequence(&cmds), "cd foo\nls");
+    }
+
+    #[test]
+    fn init_script_contains_eval() {
+        let sh = Posix { kind: ShellKind::Bash };
+        let script = sh.init_script(Path::new("/usr/local/bin/bro")).unwrap();
+        assert!(script.contains("eval"));
+        assert!(script.contains("--emit"));
+        assert!(script.contains("--shell-name bash"));
+    }
+}

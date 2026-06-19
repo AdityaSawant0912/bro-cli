@@ -1,0 +1,18 @@
+[package]
+name = "bro"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bro"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+toml = "1.1.2"
+shell-words = "1"
+shlex = "2.0.1"
+directories = "6.0.0"
+tempfile = "3"
+anyhow = "1"

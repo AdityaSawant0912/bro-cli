@@ -1,5 +1,19 @@
-bro.bat
-.git/*
-__pycache__
-.vscode
-deprecated
+# Rust
+/target
+Cargo.lock
+
+# Python (legacy)
+__pycache__/
+*.py[cod]
+
+# Editor
+.vscode/
+.idea/
+
+# Bro runtime
+*.bro.bak
+main_db.db
+
+# OS
+.DS_Store
+Thumbs.db

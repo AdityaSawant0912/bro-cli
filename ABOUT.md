@@ -1,157 +1,80 @@
-# Bro CLI
+# Bro CLI — Architecture
 
-Personal command alias manager for Windows. Store shell commands, Python scripts, JavaScript scripts, and PowerShell scripts under short memorable names — then run them with `bro <alias>`.
-
----
-
-## What It Does
-
-`bro` saves you from retyping long or complex commands. Instead of:
-
-```
-python R:\bro-cli\py_scripts\cp_hw.py
-```
-
-You do:
-
-```
-bro cphw
-```
-
-Aliases live in a global SQLite database (available everywhere) or in a per-project `.bro` TOML file (scoped to a directory tree). Project aliases shadow global ones of the same name.
+Rust rewrite of the original Python alias manager. See [`EXECUTION PLAN.md`](EXECUTION%20PLAN.md) for the build phases and [`EXTENSIONS.md`](EXTENSIONS.md) for planned features.
 
 ---
 
-## Architecture
+## Module map
 
 ```
-bro.bat          ← Windows entry point; routes shell-state cmds through a temp .bat file
-bro.py           ← Main CLI (Typer app); all command logic
-db.py            ← Singleton SQLite wrapper (Database class)
-config.py        ← Project-local .bro file handler (TOML via tomli/tomli_w)
-constants.py     ← Table definitions, executors, validators; reads BRO_CLI_PATH env var
-schema.sql       ← DB schema: cmd, python, javascript, powershell tables
-main_db.db       ← SQLite database (global alias store)
-py_scripts/      ← Example scripts registered as aliases
-```
-
-### Why `bro.bat` Exists
-
-Python subprocesses can't modify the parent shell's state (`cd`, `set`, `activate`, etc.). `bro.bat` works around this by:
-
-1. Creating a temp `.bat` file (`%TEMP%\bro_<random>.bat`)
-2. Passing its path to `bro.py` via `--exec-file`
-3. Shell-state commands get written to that file instead of executed
-4. After Python exits, `bro.bat` `call`s the temp file, then deletes it
-
-This lets `bro cd mydir` actually change the shell's working directory.
-
-### Database Layer (`db.py`)
-
-- Singleton pattern — one `Database` instance per DB key
-- Lazy connection — only opens SQLite when first query runs
-- Auto-initializes from `schema.sql` if DB file missing or tables incomplete
-- `sqlite3.Row` factory — columns accessible by name
-
-### Storage Tables (`schema.sql`)
-
-| Table        | Primary Key | Value Column | Executor               |
-|--------------|-------------|--------------|------------------------|
-| `cmd`        | alias       | cmd          | runs as-is             |
-| `python`     | alias       | path         | `python <path>`        |
-| `javascript` | alias       | path         | `node <path>`          |
-| `powershell` | alias       | path         | `powershell <path>`    |
-
-### Project Config (`config.py`)
-
-- Looks for `.bro` file by walking up from CWD to root
-- Format: TOML with `[aliases]` section
-- `bro --init` creates a template `.bro` in CWD
-- Project aliases override global aliases with same name (shadowing)
-- Only supports simple shell commands (no script type aliases)
-
----
-
-## Command Reference
-
-### Execute
-
-```
-bro <alias>                    # run alias (project first, then global)
-bro <alias> extra args         # extra args appended to command
-```
-
-### Manage Global Aliases
-
-```
-bro -a <alias> <command>       # add shell command
-bro -a <alias> -py ./script.py # add Python script
-bro -a <alias> -js ./script.js # add JS script
-bro -u <alias> <new-command>   # update
-bro -d <alias>                 # delete
-```
-
-### Manage Project Aliases
-
-```
-bro --init                     # create .bro in CWD
-bro --init --force             # overwrite existing .bro
-bro -a <alias> <command> --local  # add to project .bro
-bro -u <alias> <command> --local  # update in project .bro
-bro -d <alias> --local            # delete from project .bro
-```
-
-### Discovery
-
-```
-bro -l                         # list all (project + global)
-bro -i <alias>                 # show info (type, source, value)
-bro -s <keyword>               # search alias names and values
-```
-
-### Chaining
-
-```
-bro -c alias1,alias2,alias3    # run aliases in sequence
-```
-
-Chaining respects shell-context routing — if any alias in the chain needs shell state, all commands are written to the temp `.bat` file to preserve order.
-
----
-
-## Configuration
-
-Requires env var `BRO_CLI_PATH` set to the `bro-cli` directory path. Used to locate `main_db.db` and `schema.sql`.
-
-```bat
-set BRO_CLI_PATH=R:\bro-cli
+src/
+  main.rs          parse args → dispatch
+  cli.rs           clap definitions (Cli, Cmd, *Args structs)
+  config.rs        path resolution ($BRO_CONFIG, project .bro discovery)
+  resolve.rs       project → global alias shadowing
+  classify.rs      is_stateful() — detects cd/export/source/etc per shell
+  store/
+    mod.rs         Store::load / Store::save (atomic rename)
+    model.rs       Alias struct + AliasEntry untagged enum
+    toml_store.rs  RawStore serde target
+  shell/
+    mod.rs         ShellKind, InjectionMode, Shell trait, registry()
+    posix.rs       bash / zsh / fish impl
+    powershell.rs  PowerShell impl
+    cmd.rs         cmd.exe stub (TempFileCall wired, impl pending)
+  exec/
+    mod.rs         emit_or_exec core, substitute_args, run_one, run_chain
+  commands/
+    add.rs  update.rs  remove.rs  list.rs  info.rs  search.rs  init.rs
 ```
 
 ---
 
-## Dependencies
+## Key design decisions
 
-| Package    | Purpose                          |
-|------------|----------------------------------|
-| typer      | CLI framework                    |
-| tomli      | Read TOML `.bro` files (read)    |
-| tomli_w    | Write TOML `.bro` files (write)  |
-| sqlite3    | Built-in; global alias storage   |
+### Why a shell wrapper?
+
+A child process cannot mutate its parent shell's state (`cd`, `export`, `source`, venv activate). `bro` solves this by emitting shell code on stdout that the wrapper function `eval`s in the live shell:
+
+```
+bro <alias>  →  resolve  →  emit shell code on stdout  →  wrapper evals it
+```
+
+Invariants:
+- **stdout = shell code only** in `--emit` mode. Nothing else.
+- **stderr = all human messages** (errors, warnings, hints).
+- **Nonzero exit → no stdout** — the wrapper checks exit code before eval.
+
+### InjectionMode
+
+| Shell | Mode | Mechanism |
+|-------|------|-----------|
+| bash / zsh / fish / PowerShell | `EvalStdout` | wrapper captures stdout, `eval`s it |
+| cmd.exe *(pending)* | `TempFileCall` | binary writes to temp `.bat`; wrapper `call`s it |
+
+### Alias store
+
+Plain TOML — no SQLite, hand-editable, diff-friendly. Atomic saves (write tempfile → rename). Forward-compatible: no `deny_unknown_fields`, new fields use `#[serde(default)]`.
+
+```toml
+[aliases]
+gs   = "git status"                              # plain string shorthand
+proj = { cmd = "cd ~/myapp", shell = true }      # full form
+```
+
+### Resolution order
+
+1. Project `.bro` (nearest ancestor directory) — shadows global
+2. Global `~/.config/bro/aliases.toml`
+
+`bro info <alias>` warns when a global alias is being shadowed.
+
+### Classifier (`classify.rs`)
+
+`is_stateful(cmd, shell)` splits on `&&`, `||`, `;`, `|`, `\n` and checks each segment's first token against per-shell stateful sets (POSIX: `cd export source .` etc.; PowerShell: `Set-Location $env:` assignments etc.). Multi-word specials: `conda activate`, `nvm use`, `pyenv shell`. Explicit `shell: true/false` on an alias overrides detection entirely.
 
 ---
 
-## Alias Resolution Order
+## Deprecated
 
-1. Project `.bro` file (nearest ancestor directory)
-2. Global `main_db.db`
-
-If found in project config → used, global skipped. `bro -i <alias>` warns if a global alias is being shadowed.
-
----
-
-## Example Scripts in `py_scripts/`
-
-These are sample scripts intended to be registered as aliases:
-
-- **`cp_hw.py`** — Copies homework template files from `R:/UB/templates/HW` into CWD. Skips items that already exist.
-- **`line_count.py`** — Counts lines per file in a given directory. Usage: `python line_count.py <dir>`
+`deprecated/` holds the original Python implementation (`bro.py`, `db.py`, `config.py`, etc.). Kept for reference only.
