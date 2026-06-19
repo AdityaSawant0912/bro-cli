@@ -27,64 +27,29 @@ $ bro proj          # actually changes your directory and opens VS Code
 
 ### Windows (PowerShell)
 
-**1. Build the binary**
-
 ```powershell
-cd R:\bro-cli
-cargo build --release
+.\install.ps1
+. $PROFILE
 ```
 
-**2. Copy to a directory on your PATH** (or add `target\release` to PATH)
+That's it. The script builds the release binary, copies it to `~/bin`, adds `~/bin` to your user PATH, and injects the PowerShell wrapper into `$PROFILE`.
 
-```powershell
-Copy-Item target\release\bro.exe C:\Users\<you>\bin\bro.exe
-```
-
-**3. Install the PowerShell wrapper** (add to `$PROFILE`)
-
-```powershell
-# Run once — appends the wrapper to your PowerShell profile
-bro init powershell | Out-String >> $PROFILE
-# Or manually add:
-Invoke-Expression (& bro init powershell | Out-String)
-```
-
-Restart PowerShell (or `. $PROFILE`). Done.
+> Requires [Rust](https://rustup.rs) on PATH.
 
 ---
 
-### WSL (bash / zsh)
-
-**1. Build the Linux binary from WSL**
+### WSL (bash / zsh / fish)
 
 ```bash
-cd /mnt/r/bro-cli      # or wherever your repo lives
-cargo build --release
+bash /mnt/r/bro-cli/install.sh
+source ~/.bashrc   # or ~/.zshrc
 ```
+
+The script builds a Linux binary, copies it to `~/.local/bin`, detects your shell, and adds the eval line to your rc file.
 
 > If Rust isn't installed in WSL: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-**2. Put the binary on PATH**
-
-```bash
-mkdir -p ~/.local/bin
-cp target/release/bro ~/.local/bin/bro
-# make sure ~/.local/bin is in PATH (most distros do this automatically)
-```
-
-**3. Install the shell wrapper**
-
-```bash
-# bash — add to ~/.bashrc
-echo 'eval "$(bro init bash)"' >> ~/.bashrc
-source ~/.bashrc
-
-# zsh — add to ~/.zshrc
-echo 'eval "$(bro init zsh)"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-Done. The wrapper is a one-line shell function — it captures `bro`'s stdout and `eval`s it so stateful commands persist.
+Both scripts are idempotent — safe to re-run after updates.
 
 ---
 
