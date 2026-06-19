@@ -59,7 +59,7 @@ end
 # eval "$(bro init {shell})"
 bro() {{
   local mgmt="add update set remove rm list ls info search find init run help"
-  if [[ $# -eq 0 ]] || echo "$mgmt" | grep -qw "${1:-}" || [[ "${1:-}" == -* ]]; then
+  if [[ $# -eq 0 ]] || echo "$mgmt" | grep -qw "${{1:-}}" || [[ "${{1:-}}" == -* ]]; then
     '{bin}' "$@"
   else
     local out
