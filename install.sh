@@ -60,18 +60,26 @@ ok "shell: $DETECTED_SHELL → rc: $RC_FILE"
 step "Installing $SHELL_ARG wrapper to $RC_FILE"
 
 MARKER="# bro wrapper"
+touch "$RC_FILE"
 
+# Always replace — removes stale wrapper from previous installs
 if grep -qF "$MARKER" "$RC_FILE" 2>/dev/null; then
-    skip "wrapper already in $RC_FILE"
-else
-    touch "$RC_FILE"
-    if [[ "$SHELL_ARG" == "fish" ]]; then
-        printf '\n%s\nbro init fish | source\n' "$MARKER" >> "$RC_FILE"
-    else
-        printf '\n%s\neval "$(%s init %s)"\n' "$MARKER" "$BRO_BIN" "$SHELL_ARG" >> "$RC_FILE"
-    fi
-    ok "wrapper added to $RC_FILE"
+    TMP=$(mktemp)
+    awk "
+        /^# bro wrapper/ { skip=1; next }
+        skip && /^\$/ { skip=0; next }
+        skip { next }
+        { print }
+    " "$RC_FILE" > "$TMP" && mv "$TMP" "$RC_FILE"
+    ok "removed old wrapper from $RC_FILE"
 fi
+
+if [[ "$SHELL_ARG" == "fish" ]]; then
+    printf '\n%s\nbro init fish | source\n' "$MARKER" >> "$RC_FILE"
+else
+    printf '\n%s\neval "$(%s init %s)"\n' "$MARKER" "$BRO_BIN" "$SHELL_ARG" >> "$RC_FILE"
+fi
+ok "wrapper updated in $RC_FILE"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
