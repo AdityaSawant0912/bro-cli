@@ -5,12 +5,14 @@ use anyhow::Result;
 use crate::config::{global_store_path, project_store_path};
 use crate::store::{model::Alias, Store};
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Source {
     Project(PathBuf),
     Global,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Resolved {
     pub alias: Alias,
@@ -24,6 +26,7 @@ pub fn resolve(name: &str) -> Result<Option<Resolved>> {
     Ok(resolved)
 }
 
+#[allow(dead_code)]
 pub fn resolve_with_shadow_info(name: &str) -> Result<(Option<Resolved>, bool)> {
     resolve_inner(name)
 }

@@ -27,6 +27,7 @@ pub fn global_store_path() -> PathBuf {
 
 /// Reserved path for mutable run-time state (usage counts etc.).
 /// Never written by the core — extension seam only.
+#[allow(dead_code)]
 pub fn state_path() -> PathBuf {
     if let Ok(val) = env::var("BRO_CONFIG") {
         let p = PathBuf::from(&val);

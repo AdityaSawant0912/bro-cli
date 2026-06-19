@@ -27,8 +27,11 @@ Write-Ok "cargo $(cargo --version)"
 # ── 2. Build ─────────────────────────────────────────────────────────────────
 Write-Step "Building release binary"
 Push-Location $RepoRoot
-cargo build --release 2>&1 | ForEach-Object { Write-Host "  $_" }
-if ($LASTEXITCODE -ne 0) { Write-Error "cargo build failed." }
+$buildOutput = cargo build --release 2>&1
+if ($LASTEXITCODE -ne 0) {
+    $buildOutput | ForEach-Object { Write-Host "  $_" }
+    Write-Error "cargo build failed."
+}
 Pop-Location
 Write-Ok "built $ReleaseBin"
 

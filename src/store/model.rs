@@ -26,6 +26,7 @@ pub struct Alias {
 }
 
 impl Alias {
+    #[allow(dead_code)]
     pub fn new(cmd: impl Into<String>) -> Self {
         Alias { cmd: cmd.into(), shell: None, desc: None }
     }
