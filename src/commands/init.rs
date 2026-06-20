@@ -14,7 +14,7 @@ pub fn run(args: InitArgs) -> Result<()> {
     print!("{}", script);
 
     // Hint → stderr
-    eprintln!("\n# To install, {}", install_hint(&args.shell));
+    // eprintln!("\n# To install, {}", install_hint(&args.shell)); 
 
     Ok(())
 }
