@@ -46,6 +46,9 @@ pub enum Cmd {
     /// Emit shell wrapper function (run once to install).
     Init(InitArgs),
 
+    /// Show config file paths (global store, project store).
+    Paths,
+
     /// Run one or more aliases explicitly.
     Run(RunArgs),
 

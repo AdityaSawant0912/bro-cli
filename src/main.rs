@@ -29,6 +29,7 @@ fn main() -> Result<()> {
         Cmd::Info(args)   => commands::info::run(args),
         Cmd::Search(args) => commands::search::run(args),
         Cmd::Init(args)   => commands::init::run(args),
+        Cmd::Paths        => commands::paths::run(),
         Cmd::Run(args)    => exec::run_cmd(args, &ctx),
         Cmd::External(v)  => exec::run_external(v, &ctx),
     }

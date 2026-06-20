@@ -40,7 +40,7 @@ impl Shell for Posix {
                 r#"# bro wrapper — add to ~/.config/fish/config.fish:
 # bro init fish | source
 function bro
-    set mgmt add update set remove rm list ls info search find init run help
+    set mgmt add update set remove rm list ls info search find init paths run help
     if test (count $argv) -eq 0; or contains -- $argv[1] $mgmt; or string match -q -- '-*' $argv[1]
         '{bin}' $argv
     else
@@ -58,7 +58,7 @@ end
             r#"# bro wrapper — add to ~/.bashrc or ~/.zshrc:
 # eval "$(bro init {shell})"
 bro() {{
-  local mgmt="add update set remove rm list ls info search find init run help"
+  local mgmt="add update set remove rm list ls info search find init paths run help"
   if [[ $# -eq 0 ]] || echo "$mgmt" | grep -qw "${{1:-}}" || [[ "${{1:-}}" == -* ]]; then
     '{bin}' "$@"
   else

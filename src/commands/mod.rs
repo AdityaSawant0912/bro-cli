@@ -5,6 +5,7 @@ pub mod list;
 pub mod info;
 pub mod search;
 pub mod init;
+pub mod paths;
 
 use std::path::PathBuf;
 
