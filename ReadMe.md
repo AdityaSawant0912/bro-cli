@@ -20,7 +20,7 @@ $ bro proj          # actually changes your directory and opens VS Code
 - **Dry-run** — `bro -n <alias>` prints the fully resolved command without executing it
 - **Edit in place** — `bro edit [alias]` opens the store in `$EDITOR` with TOML re-validation on save
 - **Tab completion** — `bro completions bash|zsh|fish|powershell` emits a completion script with dynamic alias-name completion
-- **Interactive picker** — `bro` (no args) or `bro -f` launches fzf if installed, else a numbered list; selected alias runs through the normal shell-eval path so `cd`/`export` persist
+- **Interactive picker** — `bro` with no args (or `bro -f`) launches an interactive fuzzy picker; uses fzf if installed, else a built-in fuzzy select (`dialoguer`); selected alias runs through the normal shell-eval path so `cd`/`export` persist
 - **Tags** — tag aliases for filtering: `bro list --tag k8s`
 - **Usage stats** — `bro list --by-usage` sorts by run count; `bro info <alias>` shows run count and last-used time; stats live in a separate `state.toml`, never dirtying the alias store
 - **Confirm-before-run** — mark destructive aliases with `confirm = true`; prompts `y/N` on stderr before executing
@@ -94,7 +94,7 @@ bro deploy manifest.yaml --ns prod   # placeholder substitution
 bro run gs                        # explicit run (escapes subcommand collision)
 bro run -c build,test,deploy      # run aliases in sequence
 bro -n gs                         # dry-run: print resolved command, don't exec
-bro                               # interactive picker (fzf or numbered list)
+bro                               # interactive fuzzy picker (fzf or built-in)
 bro -f                            # same, explicit shorthand
 ```
 

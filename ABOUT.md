@@ -98,11 +98,11 @@ If no placeholders are present, extra args are appended (original behavior). Sub
 
 ### Interactive picker (`commands/pick.rs`)
 
-`bro` (no args) or `bro -f` → shows a picker, selected alias runs through the normal path.
+`bro` with no args (or `bro -f`) → interactive fuzzy picker. `pick` is a hidden internal subcommand — not user-facing, called by the wrappers.
 
-The wrappers route no-arg/`-f`/`pick` to `bro --emit pick` so the selected alias's shell code is still eval'd in the live shell — stateful aliases (cd, venv activate) persist. The picker UI appears on the terminal directly (fzf opens `/dev/tty` itself); binary's stdout stays clean for the wrapper to capture.
+**Priority:** fzf (subprocess) → `dialoguer::FuzzySelect` (built-in, no extra install).
 
-Fallback when fzf is absent: numbered list on stderr, accepts number / exact name / prefix.
+The wrappers route no-arg/`-f` to `bro --emit pick` so the selected alias's shell code is eval'd in the live shell — stateful aliases (cd, venv activate) persist. fzf opens `/dev/tty` for its UI so binary's stdout stays clean for the wrapper to capture. `dialoguer` handles the built-in case with a scrollable fuzzy-filtered list in the terminal.
 
 ### Usage tracking (`stats.rs`)
 
