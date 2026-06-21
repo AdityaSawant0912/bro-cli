@@ -5,6 +5,7 @@ Cargo.lock
 # Python (legacy)
 __pycache__/
 *.py[cod]
+py_scripts
 
 # Editor
 .vscode/
