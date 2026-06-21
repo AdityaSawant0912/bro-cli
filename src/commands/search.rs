@@ -13,13 +13,20 @@ pub fn run(args: SearchArgs) -> Result<()> {
 
     let mut hits: Vec<(String, &'static str, String)> = Vec::new();
 
+    let matches_kw = |name: &str, alias: &crate::store::model::Alias| {
+        name.to_lowercase().contains(&kw)
+            || alias.cmd.to_lowercase().contains(&kw)
+            || alias.desc.as_deref().unwrap_or("").to_lowercase().contains(&kw)
+            || alias.tags.iter().any(|t| t.to_lowercase().contains(&kw))
+    };
+
     for (name, alias) in &project_store.aliases {
-        if name.to_lowercase().contains(&kw) || alias.cmd.to_lowercase().contains(&kw) {
+        if matches_kw(name, alias) {
             hits.push((name.clone(), "project", alias.cmd.clone()));
         }
     }
     for (name, alias) in &global_store.aliases {
-        if name.to_lowercase().contains(&kw) || alias.cmd.to_lowercase().contains(&kw) {
+        if matches_kw(name, alias) {
             let src = if project_store.get(name).is_some() { "global (shadowed)" } else { "global" };
             hits.push((name.clone(), src, alias.cmd.clone()));
         }

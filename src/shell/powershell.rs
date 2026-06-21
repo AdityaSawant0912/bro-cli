@@ -31,7 +31,11 @@ impl Shell for Ps {
 # Invoke-Expression (& bro init powershell | Out-String)
 function bro {{
   $mgmt = 'add','update','set','remove','rm','list','ls','info','search','find','edit','init','paths','run','completions','help'
-  if ($args.Count -eq 0 -or $args[0] -in $mgmt -or $args[0] -like '-*') {{
+  if ($args.Count -eq 0 -or $args[0] -eq '-f' -or $args[0] -eq 'pick') {{
+    $code = & '{bin}' --emit --shell-name powershell pick
+    if ($LASTEXITCODE -ne 0) {{ return }}
+    if ($code) {{ Invoke-Expression ($code -join "`n") }}
+  }} elseif ($args[0] -in $mgmt -or $args[0] -like '-*') {{
     & '{bin}' @args
   }} else {{
     $code = & '{bin}' --emit --shell-name powershell run @args

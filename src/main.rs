@@ -13,13 +13,32 @@ use clap::Parser;
 
 use cli::{Cli, Cmd};
 
+fn default_ctx() -> exec::Context {
+    exec::Context {
+        emit: false,
+        shell_name: if cfg!(windows) { "powershell".to_string() } else { "bash".to_string() },
+        exec_file: None,
+        dry_run: false,
+    }
+}
+
 fn main() -> Result<()> {
-    // Fast path: dynamic alias-name completion for shell scripts.
-    // Called as `bro --complete <prefix>` by the generated completion scripts.
     let raw: Vec<String> = std::env::args().collect();
+
+    // Fast path: dynamic alias-name completion for shell scripts.
     if let Some(i) = raw.iter().position(|a| a == "--complete") {
         let prefix = raw.get(i + 1).map(String::as_str).unwrap_or("");
         return commands::completions::print_completions(prefix);
+    }
+
+    // No-arg → picker (wrap installs emit path; bare binary falls back to non-emit).
+    if raw.len() == 1 {
+        return commands::pick::run(&default_ctx());
+    }
+
+    // -f shorthand for picker when called directly (wrapper routes via `pick` subcommand).
+    if raw.get(1).map(String::as_str) == Some("-f") {
+        return commands::pick::run(&default_ctx());
     }
 
     let cli = Cli::parse();
@@ -42,6 +61,7 @@ fn main() -> Result<()> {
         Cmd::Paths             => commands::paths::run(),
         Cmd::Edit(args)        => commands::edit::run(args),
         Cmd::Completions(args) => commands::completions::run(args),
+        Cmd::Pick              => commands::pick::run(&ctx),
         Cmd::Run(args)         => exec::run_cmd(args, &ctx),
         Cmd::External(v)       => exec::run_external(v, &ctx),
     }

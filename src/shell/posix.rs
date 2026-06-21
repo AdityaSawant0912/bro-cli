@@ -41,7 +41,11 @@ impl Shell for Posix {
 # bro init fish | source
 function bro
     set mgmt add update set remove rm list ls info search find edit init paths run completions help
-    if test (count $argv) -eq 0; or contains -- $argv[1] $mgmt; or string match -q -- '-*' $argv[1]
+    if test (count $argv) -eq 0; or contains -- $argv[1] "-f" "pick"
+        set code ('{bin}' --emit --shell-name fish pick)
+        or return $status
+        if set -q code[1]; eval $code; end
+    else if contains -- $argv[1] $mgmt; or string match -q -- '-*' $argv[1]
         '{bin}' $argv
     else
         set code ('{bin}' --emit --shell-name fish run $argv)
@@ -59,7 +63,11 @@ end
 # eval "$(bro init {shell})"
 bro() {{
   local mgmt="add update set remove rm list ls info search find edit init paths run completions help"
-  if [[ $# -eq 0 ]] || echo "$mgmt" | grep -qw "${{1:-}}" || [[ "${{1:-}}" == -* ]]; then
+  if [[ $# -eq 0 ]] || [[ "${{1:-}}" == "-f" ]] || [[ "${{1:-}}" == "pick" ]]; then
+    local out
+    out="$('{bin}' --emit --shell-name {shell} pick)" || return $?
+    if [[ -n "$out" ]]; then eval "$out"; fi
+  elif echo "$mgmt" | grep -qw "${{1:-}}" || [[ "${{1:-}}" == -* ]]; then
     '{bin}' "$@"
   else
     local out

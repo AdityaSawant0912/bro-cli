@@ -27,7 +27,7 @@ src/
     mod.rs         emit_or_exec core, substitute_args (placeholders), run_one, run_chain
   commands/
     add.rs  update.rs  remove.rs  list.rs  info.rs  search.rs
-    init.rs  paths.rs  edit.rs  completions.rs
+    init.rs  paths.rs  edit.rs  completions.rs  pick.rs
 ```
 
 ---
@@ -95,6 +95,14 @@ If the command template contains `{}`, `{N}`, or `{name}` placeholders, they are
 - `{name}` — from `--name value` in extra args
 
 If no placeholders are present, extra args are appended (original behavior). Substituted values are always `shell.quote()`d.
+
+### Interactive picker (`commands/pick.rs`)
+
+`bro` (no args) or `bro -f` → shows a picker, selected alias runs through the normal path.
+
+The wrappers route no-arg/`-f`/`pick` to `bro --emit pick` so the selected alias's shell code is still eval'd in the live shell — stateful aliases (cd, venv activate) persist. The picker UI appears on the terminal directly (fzf opens `/dev/tty` itself); binary's stdout stays clean for the wrapper to capture.
+
+Fallback when fzf is absent: numbered list on stderr, accepts number / exact name / prefix.
 
 ### Usage tracking (`stats.rs`)
 

@@ -141,19 +141,6 @@ This is the payoff of treating "where emitted code goes" as the only per-shell v
 
 ---
 
-## 10. Cross-shell alias translation  ·  *priority: low / maybe never*
-
-Aliases are stored shell-native (`cd x && ...`). Running a bash-authored alias under
-PowerShell would need translating `&&`→`;`, `cd`→`Set-Location`, etc. — a large surface for
-marginal benefit, since most users live in one shell family per machine.
-
-**Recommendation:** treat as out of scope unless a concrete need appears. If it ever ships, it
-slots behind the existing `Shell` trait (add a `translate` method); still additive, but the
-parsing/normalizing cost is real. Documented here so it's a conscious non-goal, not an
-oversight.
-
----
-
 ## Suggested build order after the core ships
 
 1. Placeholders + `--dry-run` + `edit` (small, high daily value, all isolated hooks).
@@ -161,4 +148,3 @@ oversight.
 3. cmd.exe (already wired; unblocks the third shell).
 4. Tags + usage stats (organization, once the alias count grows).
 5. Picker + confirm (polish).
-6. Cross-shell translation only if genuinely needed.

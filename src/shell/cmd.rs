@@ -43,11 +43,12 @@ exit /b %ERRORLEVEL%
 
 :_bro_run
 set "BRO_MGMT=add update set remove rm list ls info search find edit init paths run completions help"
+
+if "%~1"=="" goto :bro_pick
+if /i "%~1"=="-f" goto :bro_pick
+if /i "%~1"=="pick" goto :bro_pick
+
 for %%m in (%BRO_MGMT%) do if /i "%~1"=="%%m" (
-    "{bin}" %*
-    exit /b %ERRORLEVEL%
-)
-if "%~1"=="" (
     "{bin}" %*
     exit /b %ERRORLEVEL%
 )
@@ -58,6 +59,16 @@ if "%BRO_FIRST:~0,1%"=="-" (
 )
 set "BRO_TMP=%TEMP%\bro_%RANDOM%.bat"
 "{bin}" --emit --shell-name cmd --exec-file "%BRO_TMP%" run %*
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+if not exist "%BRO_TMP%" exit /b 0
+call "%BRO_TMP%"
+set "BRO_EXIT=%ERRORLEVEL%"
+del "%BRO_TMP%" 2>nul
+exit /b %BRO_EXIT%
+
+:bro_pick
+set "BRO_TMP=%TEMP%\bro_%RANDOM%.bat"
+"{bin}" --emit --shell-name cmd --exec-file "%BRO_TMP%" pick
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 if not exist "%BRO_TMP%" exit /b 0
 call "%BRO_TMP%"

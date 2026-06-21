@@ -20,8 +20,9 @@ $ bro proj          # actually changes your directory and opens VS Code
 - **Dry-run** — `bro -n <alias>` prints the fully resolved command without executing it
 - **Edit in place** — `bro edit [alias]` opens the store in `$EDITOR` with TOML re-validation on save
 - **Tab completion** — `bro completions bash|zsh|fish|powershell` emits a completion script with dynamic alias-name completion
+- **Interactive picker** — `bro` (no args) or `bro -f` launches fzf if installed, else a numbered list; selected alias runs through the normal shell-eval path so `cd`/`export` persist
 - **Tags** — tag aliases for filtering: `bro list --tag k8s`
-- **Usage stats** — `bro list --by-usage` sorts by run count; stats live in a separate `state.toml`, never dirtying the alias store
+- **Usage stats** — `bro list --by-usage` sorts by run count; `bro info <alias>` shows run count and last-used time; stats live in a separate `state.toml`, never dirtying the alias store
 - **Confirm-before-run** — mark destructive aliases with `confirm = true`; prompts `y/N` on stderr before executing
 - **Auto-detection** — `bro` detects stateful commands automatically; override with `--shell` / `--no-shell`
 - **Human-readable store** — plain TOML, hand-editable, diff-friendly, no database
@@ -93,6 +94,8 @@ bro deploy manifest.yaml --ns prod   # placeholder substitution
 bro run gs                        # explicit run (escapes subcommand collision)
 bro run -c build,test,deploy      # run aliases in sequence
 bro -n gs                         # dry-run: print resolved command, don't exec
+bro                               # interactive picker (fzf or numbered list)
+bro -f                            # same, explicit shorthand
 ```
 
 ### Manage
@@ -102,8 +105,8 @@ bro list                          # list all (project + global)
 bro list --local                  # project aliases only
 bro list --tag k8s                # filter by tag
 bro list --by-usage               # sort by run count
-bro info gs                       # show source, cmd, shell flag, tags, confirm
-bro search git                    # search names and commands
+bro info gs                       # show source, cmd, shell flag, tags, confirm, usage stats
+bro search git                    # search names, commands, descriptions, and tags
 bro update gs "git status --short"   # update (preserves unspecified fields)
 bro update deploy --tag k8s --tag infra   # replace tags
 bro remove gs
@@ -213,5 +216,4 @@ cargo build --release
 
 Remaining planned features — see [`EXTENSIONS.md`](EXTENSIONS.md) for details:
 
-- **Interactive picker** (`bro` with no args → fzf / built-in fuzzy pick)
 - **Cross-shell alias translation** (low priority / maybe never)

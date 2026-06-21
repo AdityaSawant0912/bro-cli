@@ -59,6 +59,10 @@ pub enum Cmd {
     /// Emit shell tab-completion script.
     Completions(CompletionsArgs),
 
+    /// Internal: called by shell wrappers for the picker emit path.
+    #[command(hide = true)]
+    Pick,
+
     /// Run one or more aliases explicitly.
     Run(RunArgs),
 
