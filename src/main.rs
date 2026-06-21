@@ -5,6 +5,7 @@ mod config;
 mod exec;
 mod resolve;
 mod shell;
+mod stats;
 mod store;
 
 use anyhow::Result;

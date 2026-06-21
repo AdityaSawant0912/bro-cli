@@ -18,6 +18,8 @@ pub fn run(args: InfoArgs) -> Result<()> {
         eprintln!("cmd:     {}", alias.cmd);
         if let Some(ref d) = alias.desc { eprintln!("desc:    {}", d); }
         eprintln!("shell:   {}", fmt_shell(alias.shell));
+        if !alias.tags.is_empty() { eprintln!("tags:    {}", alias.tags.join(", ")); }
+        if alias.confirm == Some(true) { eprintln!("confirm: yes"); }
         if global_store.get(&args.name).is_some() {
             eprintln!("warning: shadows a global alias with the same name");
         }
@@ -30,6 +32,8 @@ pub fn run(args: InfoArgs) -> Result<()> {
         eprintln!("cmd:     {}", alias.cmd);
         if let Some(ref d) = alias.desc { eprintln!("desc:    {}", d); }
         eprintln!("shell:   {}", fmt_shell(alias.shell));
+        if !alias.tags.is_empty() { eprintln!("tags:    {}", alias.tags.join(", ")); }
+        if alias.confirm == Some(true) { eprintln!("confirm: yes"); }
         return Ok(());
     }
 

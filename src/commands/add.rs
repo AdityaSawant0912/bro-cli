@@ -18,7 +18,12 @@ pub fn run(args: AddArgs) -> Result<()> {
         (_, true)  => Some(false),
         _          => None,
     };
-    let alias = Alias { cmd, shell, desc: args.desc };
+    let confirm = match (args.confirm, args.no_confirm) {
+        (true, _) => Some(true),
+        (_, true) => Some(false),
+        _         => None,
+    };
+    let alias = Alias { cmd, shell, desc: args.desc, tags: args.tag, confirm };
     store.insert(&args.name, alias);
     store.save(&path)?;
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{BufRead, Write};
 use std::process;
 
 use anyhow::{bail, Result};
@@ -7,6 +8,7 @@ use crate::cli::RunArgs;
 use crate::classify::is_stateful;
 use crate::resolve::resolve;
 use crate::shell::{registry_from_str, InjectionMode};
+use crate::stats::UsageState;
 
 pub struct Context {
     pub emit: bool,
@@ -43,13 +45,25 @@ fn run_one(name: &str, extra_args: &[String], ctx: &Context) -> Result<()> {
 
     let cmd_str = substitute_args(&resolved.alias.cmd, extra_args, shell.as_ref());
 
-    // Explicit shell field overrides is_stateful detection
     let stateful = match resolved.alias.shell {
         Some(v) => v,
         None    => is_stateful(&cmd_str, shell.kind()),
     };
 
-    emit_or_exec(&cmd_str, stateful, name, ctx, shell.as_ref())
+    // confirm guard — prompt on stderr/tty before emitting or executing
+    if !ctx.dry_run && resolved.alias.confirm == Some(true) {
+        if !prompt_confirm(name, &cmd_str)? {
+            eprintln!("aborted");
+            return Ok(());
+        }
+    }
+
+    emit_or_exec(&cmd_str, stateful, name, ctx, shell.as_ref())?;
+
+    if !ctx.dry_run {
+        UsageState::bump(name);
+    }
+    Ok(())
 }
 
 fn run_chain(names: &[&str], extra_args: &[String], ctx: &Context) -> Result<()> {
@@ -66,11 +80,33 @@ fn run_chain(names: &[&str], extra_args: &[String], ctx: &Context) -> Result<()>
             None    => is_stateful(&cmd_str, shell.kind()),
         };
         if stateful { any_stateful = true; }
+
+        if !ctx.dry_run && resolved.alias.confirm == Some(true) {
+            if !prompt_confirm(name, &cmd_str)? {
+                eprintln!("aborted");
+                return Ok(());
+            }
+        }
+
         cmds.push(cmd_str);
     }
 
     let block = shell.sequence(&cmds);
-    emit_or_exec(&block, any_stateful, &names.join(","), ctx, shell.as_ref())
+    emit_or_exec(&block, any_stateful, &names.join(","), ctx, shell.as_ref())?;
+
+    if !ctx.dry_run {
+        for &name in names { UsageState::bump(name); }
+    }
+    Ok(())
+}
+
+fn prompt_confirm(name: &str, cmd: &str) -> Result<bool> {
+    eprint!("run '{}' ({})? [y/N]: ", name, cmd);
+    std::io::stderr().flush()?;
+    let mut input = String::new();
+    std::io::stdin().lock().read_line(&mut input)?;
+    let t = input.trim().to_lowercase();
+    Ok(t == "y" || t == "yes")
 }
 
 /// Either emit code to stdout/file (wrapped) or spawn a child process (unwrapped).

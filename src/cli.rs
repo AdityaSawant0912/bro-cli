@@ -95,6 +95,18 @@ pub struct AddArgs {
     #[arg(long, short)]
     pub desc: Option<String>,
 
+    /// Add one or more tags (repeatable: --tag k8s --tag infra).
+    #[arg(long, value_name = "TAG")]
+    pub tag: Vec<String>,
+
+    /// Prompt for confirmation before running.
+    #[arg(long, conflicts_with = "no_confirm")]
+    pub confirm: bool,
+
+    /// Never prompt for confirmation.
+    #[arg(long)]
+    pub no_confirm: bool,
+
     /// Write to project .bro instead of global store.
     #[arg(long, short)]
     pub local: bool,
@@ -123,6 +135,16 @@ pub struct UpdateArgs {
     #[arg(long, short)]
     pub desc: Option<String>,
 
+    /// Replace tags (repeatable: --tag k8s --tag infra).
+    #[arg(long, value_name = "TAG")]
+    pub tag: Vec<String>,
+
+    #[arg(long, conflicts_with = "no_confirm")]
+    pub confirm: bool,
+
+    #[arg(long)]
+    pub no_confirm: bool,
+
     #[arg(long, short)]
     pub local: bool,
 }
@@ -146,6 +168,14 @@ pub struct ListArgs {
     /// Show only global aliases.
     #[arg(long, conflicts_with = "local")]
     pub global: bool,
+
+    /// Filter by tag.
+    #[arg(long, value_name = "TAG")]
+    pub tag: Option<String>,
+
+    /// Sort by run count (most used first).
+    #[arg(long)]
+    pub by_usage: bool,
 }
 
 #[derive(clap::Args, Debug)]

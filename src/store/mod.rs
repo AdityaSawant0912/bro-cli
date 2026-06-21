@@ -45,7 +45,9 @@ impl Store {
                 .aliases
                 .iter()
                 .map(|(k, v)| {
-                    let entry = if v.shell.is_none() && v.desc.is_none() {
+                    let entry = if v.shell.is_none() && v.desc.is_none()
+                        && v.tags.is_empty() && v.confirm.is_none()
+                    {
                         AliasEntry::Plain(v.cmd.clone())
                     } else {
                         AliasEntry::Full(v.clone())
@@ -104,7 +106,7 @@ mod tests {
         let path = tmp.path().join("aliases.toml");
 
         let mut store = Store::default();
-        store.insert("proj", Alias { cmd: "cd ~/UB".into(), shell: Some(true), desc: Some("go to UB".into()) });
+        store.insert("proj", Alias { cmd: "cd ~/UB".into(), shell: Some(true), desc: Some("go to UB".into()), tags: vec![], confirm: None });
         store.save(&path).unwrap();
 
         let loaded = Store::load(&path).unwrap();
