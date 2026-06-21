@@ -13,6 +13,7 @@ src/
   config.rs        path resolution ($BRO_CONFIG, project .bro discovery)
   resolve.rs       project → global alias shadowing
   classify.rs      is_stateful() — detects cd/export/source/etc per shell
+  stats.rs         UsageState — run counts + last-used in state.toml
   store/
     mod.rs         Store::load / Store::save (atomic rename)
     model.rs       Alias struct + AliasEntry untagged enum
@@ -21,11 +22,12 @@ src/
     mod.rs         ShellKind, InjectionMode, Shell trait, registry()
     posix.rs       bash / zsh / fish impl
     powershell.rs  PowerShell impl
-    cmd.rs         cmd.exe stub (TempFileCall wired, impl pending)
+    cmd.rs         cmd.exe impl (TempFileCall — bro.bat wrapper)
   exec/
-    mod.rs         emit_or_exec core, substitute_args, run_one, run_chain
+    mod.rs         emit_or_exec core, substitute_args (placeholders), run_one, run_chain
   commands/
-    add.rs  update.rs  remove.rs  list.rs  info.rs  search.rs  init.rs
+    add.rs  update.rs  remove.rs  list.rs  info.rs  search.rs
+    init.rs  paths.rs  edit.rs  completions.rs
 ```
 
 ---
@@ -50,7 +52,7 @@ Invariants:
 | Shell | Mode | Mechanism |
 |-------|------|-----------|
 | bash / zsh / fish / PowerShell | `EvalStdout` | wrapper captures stdout, `eval`s it |
-| cmd.exe *(pending)* | `TempFileCall` | binary writes to temp `.bat`; wrapper `call`s it |
+| cmd.exe | `TempFileCall` | binary writes to temp `.bat`; wrapper `call`s it |
 
 ### Alias store
 
@@ -58,9 +60,24 @@ Plain TOML — no SQLite, hand-editable, diff-friendly. Atomic saves (write temp
 
 ```toml
 [aliases]
-gs   = "git status"                              # plain string shorthand
-proj = { cmd = "cd ~/myapp", shell = true }      # full form
+gs     = "git status"
+proj   = { cmd = "cd ~/myapp", shell = true }
+deploy = { cmd = "kubectl apply -f {} -n {ns}", tags = ["k8s"], confirm = true }
 ```
+
+The `Alias` struct:
+
+```rust
+pub struct Alias {
+    pub cmd:     String,
+    pub shell:   Option<bool>,      // None = auto-detect
+    pub desc:    Option<String>,
+    pub tags:    Vec<String>,       // freeform categories
+    pub confirm: Option<bool>,      // y/N prompt before run
+}
+```
+
+Plain-string shorthand (`gs = "git status"`) is used whenever `shell`, `desc`, `tags`, and `confirm` are all at their defaults.
 
 ### Resolution order
 
@@ -68,6 +85,20 @@ proj = { cmd = "cd ~/myapp", shell = true }      # full form
 2. Global `~/.config/bro/aliases.toml`
 
 `bro info <alias>` warns when a global alias is being shadowed.
+
+### Arg substitution (`exec::substitute_args`)
+
+If the command template contains `{}`, `{N}`, or `{name}` placeholders, they are substituted from extra args:
+
+- `{}` — next positional arg (auto-numbered)
+- `{1}`, `{2}` — explicit 1-indexed positional
+- `{name}` — from `--name value` in extra args
+
+If no placeholders are present, extra args are appended (original behavior). Substituted values are always `shell.quote()`d.
+
+### Usage tracking (`stats.rs`)
+
+Run counts and last-used timestamps are written to `config::state_path()` (`state.toml`, sibling of `aliases.toml`) on every successful exec — best-effort, write failures are silently ignored. The alias store is never touched, keeping it clean and diff-friendly.
 
 ### Classifier (`classify.rs`)
 
