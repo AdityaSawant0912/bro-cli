@@ -46,7 +46,7 @@ function bro
     else
         set code ('{bin}' --emit --shell-name fish run $argv)
         or return $status
-        eval $code
+        if set -q code[1]; eval $code; end
     end
 end
 "#,

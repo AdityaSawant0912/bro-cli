@@ -36,7 +36,7 @@ function bro {{
   }} else {{
     $code = & '{bin}' --emit --shell-name powershell run @args
     if ($LASTEXITCODE -ne 0) {{ return }}
-    Invoke-Expression ($code -join "`n")
+    if ($code) {{ Invoke-Expression ($code -join "`n") }}
   }}
 }}
 "#,

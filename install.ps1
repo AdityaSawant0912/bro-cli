@@ -78,9 +78,10 @@ foreach ($line in $lines) {
 }
 Set-Content $PROFILE $filtered
 
-$WrapperLine = "Invoke-Expression (& '$BroExe' init powershell | Out-String)"
-Add-Content $PROFILE "`n$Marker`n$WrapperLine`n"
-Write-Ok "wrapper updated"
+$WrapperLine     = "Invoke-Expression (& '$BroExe' init powershell | Out-String)"
+$CompletionsLine = "Invoke-Expression (& '$BroExe' completions powershell | Out-String)"
+Add-Content $PROFILE "`n$Marker`n$WrapperLine`n$CompletionsLine`n"
+Write-Ok "wrapper + completions updated"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 Write-Host ""

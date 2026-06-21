@@ -75,11 +75,12 @@ if grep -qF "$MARKER" "$RC_FILE" 2>/dev/null; then
 fi
 
 if [[ "$SHELL_ARG" == "fish" ]]; then
-    printf '\n%s\nbro init fish | source\n' "$MARKER" >> "$RC_FILE"
+    printf '\n%s\nbro init fish | source\nbro completions fish | source\n' "$MARKER" >> "$RC_FILE"
 else
-    printf '\n%s\neval "$(%s init %s)"\n' "$MARKER" "$BRO_BIN" "$SHELL_ARG" >> "$RC_FILE"
+    printf '\n%s\neval "$(%s init %s)"\neval "$(%s completions %s)"\n' \
+        "$MARKER" "$BRO_BIN" "$SHELL_ARG" "$BRO_BIN" "$SHELL_ARG" >> "$RC_FILE"
 fi
-ok "wrapper updated in $RC_FILE"
+ok "wrapper + completions updated in $RC_FILE"
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
