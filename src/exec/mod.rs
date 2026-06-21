@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::process;
 
 use anyhow::{bail, Result};
@@ -11,6 +12,7 @@ pub struct Context {
     pub emit: bool,
     pub shell_name: String,
     pub exec_file: Option<String>,
+    pub dry_run: bool,
 }
 
 /// Entry point for `bro run [--chain a,b,c | <name> [args...]]`
@@ -79,6 +81,11 @@ fn emit_or_exec(
     ctx: &Context,
     shell: &dyn crate::shell::Shell,
 ) -> Result<()> {
+    if ctx.dry_run {
+        eprintln!("dry-run [{}]: {}", name, cmd_str);
+        return Ok(());
+    }
+
     if ctx.emit {
         match shell.injection_mode() {
             InjectionMode::EvalStdout => {
@@ -107,14 +114,92 @@ fn emit_or_exec(
     Ok(())
 }
 
-/// v1: append extra args (quoted) to the command string.
-/// Placeholder substitution ({} / {name}) hooks in here later (Extension 1).
+/// Substitute extra args into the command template.
+///
+/// If the template contains `{}`, `{N}`, or `{name}` placeholders, substitutes them;
+/// otherwise falls back to appending all extra args.
 pub fn substitute_args(cmd: &str, extra_args: &[String], shell: &dyn crate::shell::Shell) -> String {
     if extra_args.is_empty() {
         return cmd.to_string();
     }
-    let quoted: Vec<String> = extra_args.iter().map(|a| shell.quote(a)).collect();
-    format!("{} {}", cmd, quoted.join(" "))
+    if !has_placeholders(cmd) {
+        let quoted: Vec<String> = extra_args.iter().map(|a| shell.quote(a)).collect();
+        return format!("{} {}", cmd, quoted.join(" "));
+    }
+    let (positional, named) = parse_placeholder_args(extra_args);
+    substitute_placeholders(cmd, &positional, &named, shell)
+}
+
+fn has_placeholders(cmd: &str) -> bool {
+    let bytes = cmd.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'{' {
+            if bytes[i + 1..].iter().any(|&b| b == b'}') {
+                return true;
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+/// Split extra_args into positional values and `--key value` named pairs.
+fn parse_placeholder_args(extra_args: &[String]) -> (Vec<String>, HashMap<String, String>) {
+    let mut positional = Vec::new();
+    let mut named = HashMap::new();
+    let mut i = 0;
+    while i < extra_args.len() {
+        if let Some(key) = extra_args[i].strip_prefix("--") {
+            if i + 1 < extra_args.len() && !extra_args[i + 1].starts_with("--") {
+                named.insert(key.to_string(), extra_args[i + 1].clone());
+                i += 2;
+            } else {
+                i += 1;
+            }
+        } else {
+            positional.push(extra_args[i].clone());
+            i += 1;
+        }
+    }
+    (positional, named)
+}
+
+fn substitute_placeholders(
+    cmd: &str,
+    positional: &[String],
+    named: &HashMap<String, String>,
+    shell: &dyn crate::shell::Shell,
+) -> String {
+    let mut result = String::new();
+    let chars: Vec<char> = cmd.chars().collect();
+    let n = chars.len();
+    let mut i = 0;
+    let mut auto_idx = 0usize;
+
+    while i < n {
+        if chars[i] == '{' {
+            let start = i + 1;
+            if let Some(rel) = chars[start..].iter().position(|&c| c == '}') {
+                let key: String = chars[start..start + rel].iter().collect();
+                let val = if key.is_empty() {
+                    let v = positional.get(auto_idx).cloned().unwrap_or_default();
+                    auto_idx += 1;
+                    v
+                } else if let Ok(n) = key.parse::<usize>() {
+                    positional.get(n.saturating_sub(1)).cloned().unwrap_or_default()
+                } else {
+                    named.get(&key).cloned().unwrap_or_default()
+                };
+                result.push_str(&shell.quote(&val));
+                i = start + rel + 1;
+                continue;
+            }
+        }
+        result.push(chars[i]);
+        i += 1;
+    }
+    result
 }
 
 fn spawn_child(cmd_str: &str) -> Result<i32> {
@@ -169,5 +254,55 @@ mod tests {
         let sh = bash();
         let args = vec!["foo".to_string(), "bar baz".to_string()];
         assert_eq!(substitute_args("echo", &args, &sh), "echo foo 'bar baz'");
+    }
+
+    #[test]
+    fn placeholder_auto_positional() {
+        let sh = bash();
+        let args = vec!["manifest.yaml".to_string()];
+        assert_eq!(
+            substitute_args("kubectl apply -f {}", &args, &sh),
+            "kubectl apply -f manifest.yaml"
+        );
+    }
+
+    #[test]
+    fn placeholder_named_arg() {
+        let sh = bash();
+        let args = vec!["manifest.yaml".to_string(), "--ns".to_string(), "vphs".to_string()];
+        assert_eq!(
+            substitute_args("kubectl apply -f {} -n {ns}", &args, &sh),
+            "kubectl apply -f manifest.yaml -n vphs"
+        );
+    }
+
+    #[test]
+    fn placeholder_numbered_positional() {
+        let sh = bash();
+        let args = vec!["a".to_string(), "b".to_string()];
+        assert_eq!(
+            substitute_args("echo {2} then {1}", &args, &sh),
+            "echo b then a"
+        );
+    }
+
+    #[test]
+    fn no_placeholders_falls_back_to_append() {
+        let sh = bash();
+        let args = vec!["--oneline".to_string()];
+        assert_eq!(
+            substitute_args("git log", &args, &sh),
+            "git log --oneline"
+        );
+    }
+
+    #[test]
+    fn placeholder_quotes_value_with_spaces() {
+        let sh = bash();
+        let args = vec!["hello world".to_string()];
+        assert_eq!(
+            substitute_args("echo {}", &args, &sh),
+            "echo 'hello world'"
+        );
     }
 }

@@ -30,7 +30,7 @@ impl Shell for Ps {
             r#"# bro wrapper — add to $PROFILE:
 # Invoke-Expression (& bro init powershell | Out-String)
 function bro {{
-  $mgmt = 'add','update','set','remove','rm','list','ls','info','search','find','init','paths','run','help'
+  $mgmt = 'add','update','set','remove','rm','list','ls','info','search','find','edit','init','paths','run','completions','help'
   if ($args.Count -eq 0 -or $args[0] -in $mgmt -or $args[0] -like '-*') {{
     & '{bin}' @args
   }} else {{

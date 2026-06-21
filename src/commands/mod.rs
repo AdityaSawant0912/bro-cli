@@ -1,11 +1,13 @@
 pub mod add;
-pub mod update;
-pub mod remove;
-pub mod list;
+pub mod completions;
+pub mod edit;
 pub mod info;
-pub mod search;
 pub mod init;
+pub mod list;
 pub mod paths;
+pub mod remove;
+pub mod search;
+pub mod update;
 
 use std::path::PathBuf;
 

@@ -15,6 +15,10 @@ pub struct Cli {
     #[arg(long, global = true, hide = true, value_name = "PATH")]
     pub exec_file: Option<String>,
 
+    /// Print the resolved command without running or emitting it.
+    #[arg(long, short = 'n', global = true)]
+    pub dry_run: bool,
+
     #[command(subcommand)]
     pub cmd: Cmd,
 }
@@ -48,6 +52,12 @@ pub enum Cmd {
 
     /// Show config file paths (global store, project store).
     Paths,
+
+    /// Open the alias store (or a specific alias) in $EDITOR.
+    Edit(EditArgs),
+
+    /// Emit shell tab-completion script.
+    Completions(CompletionsArgs),
 
     /// Run one or more aliases explicitly.
     Run(RunArgs),
@@ -153,6 +163,22 @@ pub struct SearchArgs {
 #[derive(clap::Args, Debug)]
 pub struct InitArgs {
     /// Shell to emit wrapper for (bash, zsh, fish, powershell, cmd).
+    pub shell: String,
+}
+
+#[derive(clap::Args, Debug)]
+pub struct EditArgs {
+    /// Alias name to jump to (opens the store containing it).
+    pub name: Option<String>,
+
+    /// Edit project .bro instead of global store.
+    #[arg(long, short)]
+    pub local: bool,
+}
+
+#[derive(clap::Args, Debug)]
+pub struct CompletionsArgs {
+    /// Shell to generate completion script for (bash, zsh, fish, powershell).
     pub shell: String,
 }
 
