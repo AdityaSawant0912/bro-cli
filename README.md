@@ -214,6 +214,4 @@ cargo build --release
 
 ## Roadmap
 
-Remaining planned features — see [`EXTENSIONS.md`](EXTENSIONS.md) for details:
-
 - **Cross-shell alias translation** (low priority / maybe never)

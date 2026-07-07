@@ -1,6 +1,6 @@
 # Bro CLI — Architecture
 
-Rust rewrite of the original Python alias manager. See [`EXECUTION PLAN.md`](EXECUTION%20PLAN.md) for the build phases and [`EXTENSIONS.md`](EXTENSIONS.md) for planned features.
+Rust rewrite of the original Python alias manager.
 
 ---
 
