@@ -37,7 +37,7 @@ jobs:
             bin_name: bro.exe
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -62,7 +62,7 @@ jobs:
           Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.bin_name }}" -DestinationPath $archive
           echo "ARCHIVE=$archive" >> $env:GITHUB_ENV
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bro-${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
@@ -75,7 +75,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -93,7 +93,7 @@ jobs:
             echo "flag=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           prerelease: ${{ steps.prerelease.outputs.flag }}
