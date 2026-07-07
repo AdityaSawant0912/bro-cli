@@ -22,13 +22,7 @@ pub struct Resolved {
 }
 
 pub fn resolve(name: &str) -> Result<Option<Resolved>> {
-    let (resolved, _) = resolve_inner(name)?;
-    Ok(resolved)
-}
-
-#[allow(dead_code)]
-pub fn resolve_with_shadow_info(name: &str) -> Result<(Option<Resolved>, bool)> {
-    resolve_inner(name)
+    resolve_inner(name).map(|(r, _)| r)
 }
 
 fn resolve_inner(name: &str) -> Result<(Option<Resolved>, bool)> {
@@ -60,10 +54,10 @@ fn resolve_inner(name: &str) -> Result<(Option<Resolved>, bool)> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::env;
     use std::fs;
     use tempfile::TempDir;
+
+    use crate::store::Store;
 
     fn write_store(path: &std::path::Path, content: &str) {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -74,29 +68,16 @@ mod tests {
     fn project_shadows_global() {
         let tmp = TempDir::new().unwrap();
         let global = tmp.path().join("global").join("aliases.toml");
-        let project_dir = tmp.path().join("project");
-        let project_bro = project_dir.join(".bro");
+        let project_bro = tmp.path().join("project").join(".bro");
 
         write_store(&global, "[aliases]\ngs = \"git status\"\n");
         write_store(&project_bro, "[aliases]\ngs = \"git status --short\"\n");
 
-        unsafe {
-            env::set_var("BRO_CONFIG", global.parent().unwrap());
-        }
-        let result = resolve_with_shadow_info("gs");
-        unsafe { env::remove_var("BRO_CONFIG"); }
-
-        // Can't use resolve() here without CWD manipulation; test the inner logic via Store directly.
         let project_store = Store::load(&project_bro).unwrap();
         let global_store = Store::load(&global).unwrap();
 
-        let proj_alias = project_store.get("gs").unwrap();
-        let glob_alias = global_store.get("gs").unwrap();
-
-        assert_eq!(proj_alias.cmd, "git status --short");
-        assert_eq!(glob_alias.cmd, "git status");
-        assert_ne!(proj_alias.cmd, glob_alias.cmd);
-        drop(result);
+        assert_eq!(project_store.get("gs").unwrap().cmd, "git status --short");
+        assert_eq!(global_store.get("gs").unwrap().cmd, "git status");
     }
 
     #[test]

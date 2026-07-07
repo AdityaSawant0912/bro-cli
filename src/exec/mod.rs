@@ -167,17 +167,7 @@ pub fn substitute_args(cmd: &str, extra_args: &[String], shell: &dyn crate::shel
 }
 
 fn has_placeholders(cmd: &str) -> bool {
-    let bytes = cmd.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'{' {
-            if bytes[i + 1..].iter().any(|&b| b == b'}') {
-                return true;
-            }
-        }
-        i += 1;
-    }
-    false
+    cmd.find('{').map_or(false, |i| cmd[i + 1..].contains('}'))
 }
 
 /// Split extra_args into positional values and `--key value` named pairs.
