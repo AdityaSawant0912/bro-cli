@@ -33,29 +33,31 @@ $ bro proj          # actually changes your directory and opens VS Code
 
 ## Install
 
+Both installers fetch the matching prebuilt binary from the [latest release](https://github.com/AdityaSawant0912/bro-cli/releases/latest) first. If no matching binary exists (or Rust is on PATH and you pass `--from-source`), they fall back to `cargo build --release`, cloning the repo first if needed.
+
 ### Windows (PowerShell)
 
 ```powershell
-.\install.ps1
+irm https://raw.githubusercontent.com/AdityaSawant0912/bro-cli/master/install.ps1 | iex
 . $PROFILE
 ```
 
-Builds the release binary, copies it to `~/bin`, adds `~/bin` to your user PATH, and injects the PowerShell wrapper + tab completions into `$PROFILE`.
+Copies `bro.exe` to `~/bin`, adds `~/bin` to your user PATH, and injects the PowerShell wrapper + tab completions into `$PROFILE`.
 
-> Requires [Rust](https://rustup.rs) on PATH.
+Force a source build: `.\install.ps1 -FromSource` (requires [Rust](https://rustup.rs) on PATH).
 
 ---
 
-### WSL (bash / zsh / fish)
+### Linux / macOS / WSL (bash / zsh / fish)
 
 ```bash
-bash /mnt/r/bro-cli/install.sh
+curl -fsSL https://raw.githubusercontent.com/AdityaSawant0912/bro-cli/master/install.sh | bash
 source ~/.bashrc   # or ~/.zshrc
 ```
 
-Builds a Linux binary, copies it to `~/.local/bin`, detects your shell, and adds the wrapper + completions to your rc file.
+Copies `bro` to `~/.local/bin`, detects your shell, and adds the wrapper + completions to your rc file.
 
-> If Rust isn't installed in WSL: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+Force a source build: `bash install.sh --from-source` (requires Rust — if it isn't installed: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`).
 
 Both scripts are idempotent — safe to re-run after updates.
 
@@ -129,6 +131,34 @@ bro completions zsh
 bro completions powershell
 bro completions fish
 ```
+
+`install.sh` / `install.ps1` wire both of these up automatically. To add them by hand instead, append to your rc file:
+
+**bash** (`~/.bashrc`)
+```bash
+eval "$(bro init bash)"
+eval "$(bro completions bash)"
+```
+
+**zsh** (`~/.zshrc`)
+```zsh
+eval "$(bro init zsh)"
+eval "$(bro completions zsh)"
+```
+
+**fish** (`~/.config/fish/config.fish`)
+```fish
+bro init fish | source
+bro completions fish | source
+```
+
+**PowerShell** (`$PROFILE`)
+```powershell
+Invoke-Expression (& bro init powershell | Out-String)
+Invoke-Expression (& bro completions powershell | Out-String)
+```
+
+Reload your shell after adding these, then tab-complete subcommands and alias names: `bro <TAB>`.
 
 ---
 
@@ -204,11 +234,13 @@ bro deploy manifest.yaml --ns staging
 Requires Rust 1.75+.
 
 ```bash
-git clone <repo>
+git clone https://github.com/AdityaSawant0912/bro-cli.git
 cd bro-cli
 cargo build --release
 # binary at target/release/bro (or bro.exe on Windows)
 ```
+
+Prebuilt binaries for Linux, macOS (Intel + Apple Silicon), and Windows are attached to each [GitHub Release](https://github.com/AdityaSawant0912/bro-cli/releases) — `install.sh` / `install.ps1` fetch these automatically.
 
 ---
 
