@@ -53,9 +53,9 @@ fn segment_is_stateful(seg: &str, shell: ShellKind) -> bool {
     }
 
     // Tokenize and check first token
-    let tokens = match shell_words::split(seg) {
-        Ok(t) => t,
-        Err(_) => return false, // malformed quoting → assume pure
+    let tokens = match shlex::split(seg) {
+        Some(t) => t,
+        None    => return false, // malformed quoting → assume pure
     };
 
     let first = match tokens.first() {

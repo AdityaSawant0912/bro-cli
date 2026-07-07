@@ -11,7 +11,6 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1.1.2"
-shell-words = "1"
 shlex = "2.0.1"
 directories = "6.0.0"
 tempfile = "3"

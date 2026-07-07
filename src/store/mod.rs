@@ -1,5 +1,4 @@
 pub mod model;
-pub mod toml_store;
 
 use std::collections::HashMap;
 use std::fs;
@@ -7,10 +6,16 @@ use std::io::Write;
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
 
 use model::{Alias, AliasEntry};
-use toml_store::RawStore;
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct RawStore {
+    #[serde(default)]
+    aliases: HashMap<String, AliasEntry>,
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct Store {
